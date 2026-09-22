@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yuk, Berhitung Buah! - MPI TK A</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for Kid-friendly Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'cursive', 'sans-serif'],
+                        nunito: ['Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        kebun: {
+                            light: '#a7f3d0',
+                            DEFAULT: '#34d399',
+                            dark: '#059669',
+                        },
+                        apel: '#ef4444',
+                        jeruk: '#f97316',
+                        pisang: '#eab308',
+                        stroberi: '#ec4899',
+                        kayu: '#b45309',
+                        kayuLight: '#d97706',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 50%, #dcfce7 100%);
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Fun Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(3deg); }
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @keyframes pulse-grow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px) rotate(-5deg); }
+            40%, 80% { transform: translateX(10px) rotate(5deg); }
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        .animate-bounce-slow { animation: bounce-slow 2s infinite; }
+        .animate-pulse-grow { animation: pulse-grow 1.8s infinite; }
+        .animate-shake { animation: shake 0.5s ease-in-out; }
+        .animate-pop { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .btn-wood {
+            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+            border-bottom: 6px solid #78350f;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        .btn-wood:active {
+            border-bottom-width: 2px;
+            transform: translateY(4px);
+        }
+
+        .btn-apple {
+            background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+            border-bottom: 6px solid #991b1b;
+            box-shadow: 0 12px 20px -3px rgba(220, 38, 38, 0.4);
+        }
+        .btn-apple:active {
+            border-bottom-width: 2px;
+            transform: translateY(4px);
+        }
+
+        .fruit-card {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .fruit-card:hover {
+            transform: scale(1.1) rotate(3deg);
+        }
+
+        /* Glassmorphism card */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 4px solid rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800 relative">
+
+    <header class="p-4 flex justify-between items-center z-50 max-w-5xl mx-auto w-full">
+        <div class="flex items-center space-x-3 bg-white/90 px-4 py-2 rounded-full shadow-md border-2 border-amber-300">
+            <span class="text-2xl">🍎</span>
+            <span class="font-bold text-lg md:text-xl text-amber-800">Yuk, Berhitung Buah!</span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button id="btn-audio" onclick="toggleAudio()" class="bg-amber-400 hover:bg-amber-500 text-amber-950 p-3 rounded-full shadow-lg border-2 border-amber-200 transition-all transform active:scale-95 flex items-center justify-center w-12 h-12">
+                <i id="audio-icon" class="fas fa-volume-up text-xl"></i>
+            </button>
+            <button onclick="goHome()" class="bg-emerald-400 hover:bg-emerald-500 text-emerald-950 p-3 rounded-full shadow-lg border-2 border-emerald-200 transition-all transform active:scale-95 flex items-center justify-center w-12 h-12">
+                <i class="fas fa-home text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Teacher Voice Bubble Bar -->
+    <div class="max-w-3xl mx-auto w-full px-4 mb-2 z-40">
+        <div class="glass-panel p-3 rounded-2xl shadow-lg border-2 border-amber-300 flex items-center space-x-3 transition-all duration-300">
+            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
+                👩‍🏫
+            </div>
+            <div class="flex-grow">
+                <div class="text-xs font-bold text-amber-700 uppercase tracking-wide">Ibu Guru Sekar</div>
+                <div id="speech-text" class="text-sm md:text-base font-semibold text-slate-700 leading-snug">
+                    Halo teman-teman! Yuk belajar berhitung buah bersama!
+                </div>
+            </div>
+            <button onclick="repeatSpeech()" class="text-amber-600 hover:text-amber-800 p-2 rounded-lg hover:bg-amber-100 transition-colors" title="Ulangi Suara">
+                <i class="fas fa-redo-alt text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER FOR SCENES -->
+    <main class="flex-grow flex items-center justify-center p-4 relative z-10 max-w-5xl mx-auto w-full">
+
+        <!-- SCENE LOADING -->
+        <section id="scene-loading" class="w-full text-center flex flex-col items-center justify-center py-12">
+            <div class="relative mb-6">
+                <!-- Floating & Spinning Decorative Loading Icons -->
+                <div class="text-7xl md:text-8xl animate-bounce-slow">🍎</div>
+                <div class="absolute -top-3 -right-4 text-4xl animate-spin" style="animation-duration: 3s;">⭐</div>
+            </div>
+
+            <h2 class="text-2xl md:text-4xl font-black text-amber-900 mb-2 drop-shadow">
+                Menyiapkan Kebun Buah...
+            </h2>
+            <p class="text-amber-800 font-bold text-sm md:text-lg mb-6">
+                Tunggu sebentar ya, Teman-teman! 🍓🍌🍊
+            </p>
+
+            <!-- Progress Bar Container -->
+            <div class="w-full max-w-md bg-white/90 p-2 rounded-full border-4 border-amber-300 shadow-lg mb-3">
+                <div id="loading-bar" class="bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 h-6 md:h-8 rounded-full transition-all duration-300 w-0 flex items-center justify-end pr-2">
+                </div>
+            </div>
+            <span id="loading-text" class="text-amber-900 font-black text-xl">0%</span>
+        </section>
+
+        <section id="scene-splash" class="hidden w-full text-center flex flex-col items-center justify-center py-6">
+            <div class="relative mb-6">
+                <!-- Floating Decorative Fruits -->
+                <div class="absolute -top-10 -left-12 text-5xl md:text-6xl animate-float" style="animation-delay: 0s;">🍎</div>
+                <div class="absolute -top-8 -right-12 text-5xl md:text-6xl animate-float" style="animation-delay: 1s;">🍌</div>
+                <div class="absolute -bottom-6 -left-10 text-5xl md:text-6xl animate-float" style="animation-delay: 1.5s;">🍊</div>
+                <div class="absolute -bottom-6 -right-10 text-5xl md:text-6xl animate-float" style="animation-delay: 0.5s;">🍓</div>
+
+                <!-- Main Title Box -->
+                <div class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 p-6 md:p-8 rounded-3xl shadow-2xl border-4 border-white transform rotate-1">
+                    <h1 class="text-4xl md:text-6xl font-black text-white drop-shadow-lg tracking-wide">
+                        Yuk, Berhitung Buah!
+                    </h1>
+                    <p class="text-amber-100 text-lg md:text-2xl mt-2 font-bold drop-shadow">
+                        Belajar Penjumlahan Sederhana untuk TK A
+                    </p>
+                </div>
+            </div>
+
+            <!-- Basket Mascot Illustration -->
+            <div class="my-6 relative cursor-pointer transform hover:scale-105 transition-transform" onclick="playBasketSound()">
+                <div class="w-36 h-36 md:w-48 md:h-48 mx-auto animate-bounce-slow drop-shadow-xl flex items-center justify-center">
+                    <img src="keranjang buah.png" alt="Keranjang Buah" class="w-full h-full object-contain filter drop-shadow-lg" onerror="this.onerror=null; this.parentNode.innerHTML='<svg viewBox=\'0 0 200 190\' class=\'w-full h-full filter drop-shadow-lg\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M 35 100 C 35 25, 165 25, 165 100\' fill=\'none\' stroke=\'#78350f\' stroke-width=\'16\' stroke-linecap=\'round\'/><path d=\'M 35 100 C 35 25, 165 25, 165 100\' fill=\'none\' stroke=\'#d97706\' stroke-width=\'10\' stroke-linecap=\'round\'/><path d=\'M 35 100 C 35 25, 165 25, 165 100\' fill=\'none\' stroke=\'#fef3c7\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-dasharray=\'8 6\'/><ellipse cx=\'100\' cy=\'100\' rx=\'68\' ry=\'16\' fill=\'#451a03\'/><text x=\'58\' y=\'92\' font-size=\'32\'>🍎</text><text x=\'92\' y=\'86\' font-size=\'35\'>🍌</text><text x=\'124\' y=\'92\' font-size=\'32\'>🍊</text><path d=\'M 32 100 C 36 150, 55 175, 100 175 C 145 175, 164 150, 168 100 Z\' fill=\'#d97706\' stroke=\'#78350f\' stroke-width=\'5\'/><path d=\'M 34 118 C 60 132, 140 132, 166 118\' fill=\'none\' stroke=\'#92400e\' stroke-width=\'4\'/><path d=\'M 38 136 C 65 148, 135 148, 162 136\' fill=\'none\' stroke=\'#92400e\' stroke-width=\'4\'/><path d=\'M 46 154 C 70 164, 130 164, 154 154\' fill=\'none\' stroke=\'#92400e\' stroke-width=\'4\'/><path d=\'M 55 102 C 57 130, 62 160, 68 168\' fill=\'none\' stroke=\'#b45309\' stroke-width=\'3.5\'/><path d=\'M 80 102 C 81 130, 83 162, 86 173\' fill=\'none\' stroke=\'#b45309\' stroke-width=\'3.5\'/><path d=\'M 100 102 C 100 130, 100 163, 100 175\' fill=\'none\' stroke=\'#b45309\' stroke-width=\'3.5\'/><path d=\'M 120 102 C 119 130, 117 162, 114 173\' fill=\'none\' stroke=\'#b45309\' stroke-width=\'3.5\'/><path d=\'M 145 102 C 138 160, 138 160, 132 168\' fill=\'none\' stroke=\'#b45309\' stroke-width=\'3.5\'/><ellipse cx=\'100\' cy=\'100\' rx=\'70\' ry=\'16\' fill=\'none\' stroke=\'#78350f\' stroke-width=\'8\'/><ellipse cx=\'100\' cy=\'100\' rx=\'70\' ry=\'16\' fill=\'none\' stroke=\'#f59e0b\' stroke-width=\'5\' stroke-dasharray=\'10 6\'/><circle cx=\'35\' cy=\'100\' r=\'7\' fill=\'#78350f\'/><circle cx=\'165\' cy=\'100\' r=\'7\' fill=\'#78350f\'/></svg>';">
+                </div>
+            </div>
+
+            <!-- START BUTTON -->
+            <button onclick="startApp()" class="btn-apple text-white font-black text-2xl md:text-4xl px-10 py-5 rounded-full uppercase tracking-wider flex items-center space-x-4 animate-pulse-grow hover:brightness-110 active:scale-95 transition-all">
+                <span class="text-3xl">🍎</span>
+                <span>M U L A I</span>
+                <i class="fas fa-play text-2xl ml-2"></i>
+            </button>
+        </section>
+
+        <section id="scene-menu" class="hidden w-full max-w-3xl flex flex-col items-center">
+            <h2 class="text-2xl md:text-3xl font-extrabold text-amber-900 mb-8 bg-white/80 px-6 py-2 rounded-full border-2 border-amber-300 shadow">
+                Mau Ngapain Kita Hari Ini? Pilih ya!
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full px-4">
+                <!-- Belajar Panel -->
+                <div onclick="openBelajar()" class="btn-wood p-6 rounded-3xl cursor-pointer transform hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 border-4 border-amber-200 flex flex-col items-center text-center group">
+                    <div class="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center text-5xl mb-4 border-4 border-amber-300 group-hover:scale-110 transition-transform shadow-inner">
+                        🔍
+                    </div>
+                    <h3 class="text-3xl font-black text-white drop-shadow mb-1">BELAJAR</h3>
+                    <p class="text-amber-100 font-semibold text-sm md:text-base">Belajar cara menghitung buah bersama Ibu Guru</p>
+                    <div class="mt-4 bg-white text-amber-900 px-5 py-2 rounded-full font-bold text-lg shadow group-hover:bg-amber-300 transition-colors">
+                        Mulai Belajar <i class="fas fa-arrow-right ml-1"></i>
+                    </div>
+                </div>
+
+                <!-- Bermain Panel -->
+                <div onclick="openBermain()" class="btn-wood p-6 rounded-3xl cursor-pointer transform hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 border-4 border-amber-200 flex flex-col items-center text-center group">
+                    <div class="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center text-5xl mb-4 border-4 border-amber-300 group-hover:scale-110 transition-transform shadow-inner">
+                        ⭐
+                    </div>
+                    <h3 class="text-3xl font-black text-white drop-shadow mb-1">BERMAIN</h3>
+                    <p class="text-amber-100 font-semibold text-sm md:text-base">Kuis seru tebak jumlah buah & kumpulkan bintang!</p>
+                    <div class="mt-4 bg-white text-amber-900 px-5 py-2 rounded-full font-bold text-lg shadow group-hover:bg-amber-300 transition-colors">
+                        Main Kuis <i class="fas fa-gamepad ml-1"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="scene-belajar" class="hidden w-full flex flex-col items-center">
+            <!-- Navigation Header -->
+            <div class="flex justify-between items-center w-full mb-4 px-2">
+                <span id="belajar-step-indicator" class="bg-amber-500 text-white font-bold px-4 py-1 rounded-full text-base shadow">
+                    Materi 1 / 3
+                </span>
+                <span class="text-amber-900 font-bold text-sm md:text-base bg-white/70 px-3 py-1 rounded-full">
+                    💡 Sentuh buah untuk menghitung!
+                </span>
+            </div>
+
+            <!-- Learning Card Container -->
+            <div class="glass-panel p-6 md:p-8 rounded-3xl shadow-2xl w-full border-4 border-white flex flex-col items-center relative">
+                
+                <!-- Fruit Name Badge -->
+                <h3 id="belajar-title" class="text-2xl md:text-3xl font-black text-amber-800 mb-6 bg-amber-200/80 px-6 py-2 rounded-full border border-amber-300">
+                    Jeruk Manis 🍊
+                </h3>
+
+                <!-- Addition Visual Display -->
+                <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 my-4 min-h-[160px] w-full">
+                    
+                    <!-- Group A Fruits -->
+                    <div id="belajar-group-a" class="flex flex-wrap items-center justify-center gap-2 bg-orange-100/80 p-3 md:p-4 rounded-2xl border-2 border-orange-300 min-w-[100px]">
+                        <!-- Rendered dynamically -->
+                    </div>
+
+                    <!-- Plus Symbol -->
+                    <div class="text-4xl md:text-6xl font-black text-amber-600 px-2 animate-pulse">
+                        +
+                    </div>
+
+                    <!-- Group B Fruits -->
+                    <div id="belajar-group-b" class="flex flex-wrap items-center justify-center gap-2 bg-orange-100/80 p-3 md:p-4 rounded-2xl border-2 border-orange-300 min-w-[100px]">
+                        <!-- Rendered dynamically -->
+                    </div>
+
+                    <!-- Equals Symbol -->
+                    <div class="text-4xl md:text-6xl font-black text-amber-600 px-2">
+                        =
+                    </div>
+
+                    <!-- Result Box -->
+                    <div id="belajar-result-box" class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center text-4xl md:text-5xl font-black text-white transform transition-transform">
+                        ?
+                    </div>
+                </div>
+
+                <!-- Action Button to Trigger Auto Count -->
+                <div class="mt-4 flex flex-wrap justify-center gap-3">
+                    <button onclick="countBelajarAll()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black px-6 py-3 rounded-full shadow-lg text-lg flex items-center space-x-2 transform active:scale-95 transition-all">
+                        <i class="fas fa-calculator text-xl"></i>
+                        <span>Hitung Bersama!</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="flex justify-between items-center w-full mt-6 px-4">
+                <button id="btn-belajar-prev" onclick="prevBelajar()" class="btn-wood text-white font-bold px-6 py-3 rounded-2xl flex items-center space-x-2 text-lg disabled:opacity-50">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>KEMBALI</span>
+                </button>
+
+                <button id="btn-belajar-next" onclick="nextBelajar()" class="btn-apple text-white font-bold px-6 py-3 rounded-2xl flex items-center space-x-2 text-lg">
+                    <span>LANJUT</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <section id="scene-bermain" class="hidden w-full flex flex-col items-center">
+            <!-- Quiz Status Bar -->
+            <div class="flex justify-between items-center w-full mb-4 px-2">
+                <div class="flex items-center space-x-2 bg-white/80 px-4 py-1.5 rounded-full border border-amber-300 shadow-sm">
+                    <span class="text-amber-800 font-bold text-sm md:text-base">Soal:</span>
+                    <span id="quiz-level-text" class="text-amber-900 font-extrabold text-lg">1/5</span>
+                </div>
+
+                <div class="flex items-center space-x-1 bg-amber-100/90 px-4 py-1.5 rounded-full border border-amber-300 shadow-sm">
+                    <span class="text-amber-800 font-bold text-sm md:text-base">Bintang:</span>
+                    <div id="quiz-stars" class="flex space-x-1 text-xl text-amber-400">
+                        <!-- Dynamic Star Icons -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Question Card -->
+            <div class="glass-panel p-6 md:p-8 rounded-3xl shadow-2xl w-full border-4 border-white flex flex-col items-center relative">
+                
+                <h3 class="text-xl md:text-2xl font-black text-amber-900 mb-4 text-center">
+                    Ada berapa semua buah di bawah ini?
+                </h3>
+
+                <!-- Fruit Displays -->
+                <div class="flex flex-wrap items-center justify-center gap-3 md:gap-5 my-4 min-h-[150px] w-full">
+                    
+                    <!-- Left Group -->
+                    <div id="quiz-group-a" class="flex flex-wrap items-center justify-center gap-2 bg-white/80 p-3 md:p-4 rounded-2xl border-2 border-amber-200 shadow-inner">
+                        <!-- Fruits JS -->
+                    </div>
+
+                    <span class="text-4xl md:text-5xl font-black text-amber-600">+</span>
+
+                    <!-- Right Group -->
+                    <div id="quiz-group-b" class="flex flex-wrap items-center justify-center gap-2 bg-white/80 p-3 md:p-4 rounded-2xl border-2 border-amber-200 shadow-inner">
+                        <!-- Fruits JS -->
+                    </div>
+
+                    <span class="text-4xl md:text-5xl font-black text-amber-600">=</span>
+
+                    <!-- Question Mark Placeholder -->
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-amber-300 rounded-2xl border-4 border-amber-500 shadow-md flex items-center justify-center text-3xl md:text-4xl font-black text-amber-900 animate-bounce-slow">
+                        ?
+                    </div>
+                </div>
+
+                <p class="text-slate-500 text-xs md:text-sm font-semibold mb-6">
+                    👉 Tekan angka yang benar di dalam keranjang di bawah ini!
+                </p>
+
+                <!-- Options Baskets -->
+                <div id="quiz-options-container" class="grid grid-cols-3 gap-3 md:gap-6 w-full max-w-xl">
+                    <!-- Option Buttons Rendered via JS -->
+                </div>
+            </div>
+        </section>
+
+        <section id="scene-reward" class="hidden w-full max-w-2xl text-center flex flex-col items-center justify-center py-4">
+            <div class="glass-panel p-8 rounded-3xl shadow-2xl w-full border-4 border-amber-300 flex flex-col items-center animate-pop">
+                
+                <!-- Sparkling Stars Header -->
+                <div class="flex justify-center space-x-2 text-4xl text-amber-400 mb-2">
+                    <span class="animate-bounce" style="animation-delay: 0.1s;">⭐</span>
+                    <span class="animate-bounce text-5xl" style="animation-delay: 0.2s;">🌟</span>
+                    <span class="animate-bounce" style="animation-delay: 0.3s;">⭐</span>
+                </div>
+
+                <h2 class="text-4xl md:text-5xl font-black text-amber-900 mb-2 drop-shadow">
+                    HORE! LUAR BIASA! 🎉
+                </h2>
+
+                <p class="text-amber-800 text-lg md:text-xl font-bold mb-6">
+                    Kamu sudah pintar berhitung buah!
+                </p>
+
+                <!-- Trophy Illustration -->
+                <div class="relative my-4 transform hover:scale-110 transition-transform">
+                    <div class="text-9xl drop-shadow-2xl animate-float">
+                        🏆
+                    </div>
+                    <div class="absolute -bottom-2 bg-amber-500 text-white font-extrabold px-6 py-1 rounded-full text-base border-2 border-white shadow">
+                        Bintang : <span id="reward-score-text">5/5</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-8 w-full max-w-md">
+                    <button onclick="openBermain()" class="btn-apple text-white font-black text-xl py-4 px-6 rounded-2xl flex-1 flex items-center justify-center space-x-2">
+                        <i class="fas fa-redo text-2xl"></i>
+                        <span>MAIN LAGI</span>
+                    </button>
+
+                    <button onclick="goHome()" class="btn-wood text-white font-black text-xl py-4 px-6 rounded-2xl flex-1 flex items-center justify-center space-x-2">
+                        <i class="fas fa-home text-2xl"></i>
+                        <span>MENU UTAMA</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="p-3 text-center text-xs md:text-sm font-semibold text-amber-900/70 z-10">
+        Media Pembelajaran Interaktif (MPI) TK A • Ibu Sekar
+    </footer>
+
+    <script>
+        // Web Audio API Synthesizer for rich SFX without external audio files
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Pop sound effect for fruit clicks
+        function playPopSound(pitch = 440) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(pitch * 1.5, audioCtx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.09);
+            } catch (e) { console.log(e); }
+        }
+
+        // Correct answer fanfare chime
+        function playCorrectSound() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.1 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + idx * 0.1);
+                    osc.stop(audioCtx.currentTime + idx * 0.1 + 0.26);
+                });
+            } catch(e) { console.log(e); }
+        }
+
+        // Gentle wrong answer boing
+        function playWrongSound() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.31);
+            } catch(e) { console.log(e); }
+        }
+
+        // Victory fanfare for final screen
+        function playVictorySound() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.12 + 0.35);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + idx * 0.12);
+                    osc.stop(audioCtx.currentTime + idx * 0.12 + 0.36);
+                });
+            } catch(e) { console.log(e); }
+        }
+
+        function playBasketSound() {
+            playPopSound(350);
+            speak("Halo! Aku keranjang buah ceria! Ayo kita belajar berhitung!");
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('audio-icon');
+            if (soundEnabled) {
+                icon.className = "fas fa-volume-up text-xl";
+                speak("Suara diaktifkan");
+            } else {
+                icon.className = "fas fa-volume-mute text-xl";
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        let lastSpeechText = "";
+
+        function speak(text) {
+            lastSpeechText = text;
+            document.getElementById('speech-text').innerText = text;
+
+            if (!soundEnabled || !('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel(); // Stop current speech
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.85; // Slower for young children
+            utterance.pitch = 1.1; // Friendly warm pitch
+
+            // Try to set an Indonesian voice if available
+            const voices = window.speechSynthesis.getVoices();
+            const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID'));
+            if (idVoice) utterance.voice = idVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function repeatSpeech() {
+            if (lastSpeechText) speak(lastSpeechText);
+        }
+
+        const belajarData = [
+            {
+                title: "Jeruk Manis 🍊",
+                fruit: "🍊",
+                nameSingular: "jeruk",
+                countA: 2,
+                countB: 1,
+                total: 3
+            },
+            {
+                title: "Stroberi Segar 🍓",
+                fruit: "🍓",
+                nameSingular: "stroberi",
+                countA: 3,
+                countB: 2,
+                total: 5
+            },
+            {
+                title: "Apel Merah 🍎",
+                fruit: "🍎",
+                nameSingular: "apel",
+                countA: 4,
+                countB: 2,
+                total: 6
+            }
+        ];
+
+        const quizData = [
+            {
+                fruit: "🍌",
+                nameSingular: "pisang",
+                countA: 2,
+                countB: 2,
+                answer: 4,
+                options: [3, 4, 5]
+            },
+            {
+                fruit: "🍊",
+                nameSingular: "jeruk",
+                countA: 3,
+                countB: 2,
+                answer: 5,
+                options: [4, 5, 6]
+            },
+            {
+                fruit: "🍎",
+                nameSingular: "apel",
+                countA: 4,
+                countB: 3,
+                answer: 7,
+                options: [6, 7, 8]
+            },
+            {
+                fruit: "🍓",
+                nameSingular: "stroberi",
+                countA: 5,
+                countB: 3,
+                answer: 8,
+                options: [7, 8, 9]
+            },
+            {
+                fruit: "🍇",
+                nameSingular: "anggur",
+                countA: 5,
+                countB: 5,
+                answer: 10,
+                options: [8, 9, 10]
+            }
+        ];
+
+        let currentBelajarIdx = 0;
+        let currentQuizIdx = 0;
+        let quizStarsCount = 0;
+
+        // Navigation between scenes
+        function showScene(sceneId) {
+            const scenes = ['scene-loading', 'scene-splash', 'scene-menu', 'scene-belajar', 'scene-bermain', 'scene-reward'];
+            scenes.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(sceneId);
+            if (target) target.classList.remove('hidden');
+        }
+
+        // Automatic simulated loading progress on app startup
+        window.addEventListener('load', () => {
+            let progress = 0;
+            const loadingBar = document.getElementById('loading-bar');
+            const loadingText = document.getElementById('loading-text');
+
+            const loadingInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 12;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadingInterval);
+                    if (loadingBar) loadingBar.style.width = '100%';
+                    if (loadingText) loadingText.innerText = '100%';
+
+                    // Smooth transition to splash screen after loading completes
+                    setTimeout(() => {
+                        showScene('scene-splash');
+                        speak("Halo teman-teman! Yuk belajar berhitung buah bersama!");
+                    }, 500);
+                } else {
+                    if (loadingBar) loadingBar.style.width = progress + '%';
+                    if (loadingText) loadingText.innerText = progress + '%';
+                }
+            }, 180);
+        });
+
+        function startApp() {
+            initAudio();
+            playPopSound(500);
+            showScene('scene-menu');
+            speak("Mau ngapain kita hari ini? Pilih tombol BELAJAR atau BERMAIN ya!");
+        }
+
+        function goHome() {
+            playPopSound(400);
+            showScene('scene-menu');
+            speak("Mau ngapain kita hari ini? Pilih tombol BELAJAR atau BERMAIN ya!");
+        }
+
+        function openBelajar() {
+            playPopSound(450);
+            currentBelajarIdx = 0;
+            showScene('scene-belajar');
+            renderBelajarCard();
+        }
+
+        function renderBelajarCard() {
+            const data = belajarData[currentBelajarIdx];
+            document.getElementById('belajar-title').innerText = data.title;
+            document.getElementById('belajar-step-indicator').innerText = `Materi ${currentBelajarIdx + 1} / ${belajarData.length}`;
+
+            // Reset Result
+            const resultBox = document.getElementById('belajar-result-box');
+            resultBox.innerText = "?";
+            resultBox.className = "w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center text-4xl md:text-5xl font-black text-white transform transition-transform";
+
+            // Render Group A
+            const containerA = document.getElementById('belajar-group-a');
+            containerA.innerHTML = '';
+            for (let i = 0; i < data.countA; i++) {
+                const fruitBtn = createFruitButton(data.fruit, i + 1, data.nameSingular);
+                containerA.appendChild(fruitBtn);
+            }
+
+            // Render Group B
+            const containerB = document.getElementById('belajar-group-b');
+            containerB.innerHTML = '';
+            for (let i = 0; i < data.countB; i++) {
+                const fruitBtn = createFruitButton(data.fruit, data.countA + i + 1, data.nameSingular);
+                containerB.appendChild(fruitBtn);
+            }
+
+            // Navigation Buttons State
+            document.getElementById('btn-belajar-prev').disabled = (currentBelajarIdx === 0);
+
+            // Audio Instruction
+            const textPrompt = `Ada ${data.countA} ${data.nameSingular} ditambah ${data.countB} ${data.nameSingular}. Sentuh buahnya untuk menghitung!`;
+            speak(textPrompt);
+        }
+
+        function createFruitButton(emoji, number, fruitName) {
+            const btn = document.createElement('button');
+            btn.className = "fruit-card w-14 h-14 md:w-18 md:h-18 bg-white rounded-2xl border-2 border-amber-300 shadow flex items-center justify-center text-3xl md:text-4xl active:scale-90 relative group";
+            btn.innerHTML = `<span>${emoji}</span>`;
+            
+            btn.onclick = () => {
+                playPopSound(300 + (number * 40));
+                // Show floating number overlay
+                const badge = document.createElement('span');
+                badge.className = "absolute -top-2 -right-2 bg-amber-500 text-white font-extrabold text-xs md:text-sm w-6 h-6 rounded-full flex items-center justify-center shadow border border-white animate-pop";
+                badge.innerText = number;
+                btn.appendChild(badge);
+                
+                speak(`${number}`);
+            };
+            return btn;
+        }
+
+        function countBelajarAll() {
+            const data = belajarData[currentBelajarIdx];
+            let count = 1;
+            const total = data.total;
+
+            speak(`Mari hitung bersama!`);
+
+            const interval = setInterval(() => {
+                if (count <= total) {
+                    playPopSound(300 + (count * 40));
+                    speak(`${count}`);
+                    count++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        const resultBox = document.getElementById('belajar-result-box');
+                        resultBox.innerText = total;
+                        resultBox.classList.add('scale-110', 'bg-emerald-500');
+                        playCorrectSound();
+                        speak(`Hore! Semuanya ada ${total} ${data.nameSingular}!`);
+                    }, 600);
+                }
+            }, 800);
+        }
+
+        function prevBelajar() {
+            if (currentBelajarIdx > 0) {
+                currentBelajarIdx--;
+                playPopSound(350);
+                renderBelajarCard();
+            }
+        }
+
+        function nextBelajar() {
+            if (currentBelajarIdx < belajarData.length - 1) {
+                currentBelajarIdx++;
+                playPopSound(450);
+                renderBelajarCard();
+            } else {
+                openBermain();
+            }
+        }
+
+        function openBermain() {
+            playPopSound(500);
+            currentQuizIdx = 0;
+            quizStarsCount = 0;
+            showScene('scene-bermain');
+            renderQuizLevel();
+        }
+
+        function renderQuizLevel() {
+            const data = quizData[currentQuizIdx];
+            document.getElementById('quiz-level-text').innerText = `${currentQuizIdx + 1} / ${quizData.length}`;
+
+            // Update Stars Display
+            const starsContainer = document.getElementById('quiz-stars');
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < quizData.length; i++) {
+                const star = document.createElement('i');
+                if (i < quizStarsCount) {
+                    star.className = "fas fa-star text-amber-400 drop-shadow";
+                } else {
+                    star.className = "far fa-star text-amber-300 opacity-60";
+                }
+                starsContainer.appendChild(star);
+            }
+
+            // Render Group A
+            const groupA = document.getElementById('quiz-group-a');
+            groupA.innerHTML = '';
+            for (let i = 0; i < data.countA; i++) {
+                const f = createQuizFruitItem(data.fruit, i + 1);
+                groupA.appendChild(f);
+            }
+
+            // Render Group B
+            const groupB = document.getElementById('quiz-group-b');
+            groupB.innerHTML = '';
+            for (let i = 0; i < data.countB; i++) {
+                const f = createQuizFruitItem(data.fruit, data.countA + i + 1);
+                groupB.appendChild(f);
+            }
+
+            // Render Answer Baskets
+            const optionsContainer = document.getElementById('quiz-options-container');
+            optionsContainer.innerHTML = '';
+
+            data.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "btn-wood p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center transform active:scale-95 transition-transform group relative overflow-hidden";
+                btn.innerHTML = `
+                    <div class="flex items-center space-x-1 mb-1 group-hover:scale-110 transition-transform">
+                        <img src="keranjang buah.png" alt="Keranjang Buah" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow" onerror="this.onerror=null; this.parentNode.innerHTML='<svg viewBox=\\'0 0 200 190\\' class=\\'w-10 h-10 md:w-12 md:h-12 filter drop-shadow\\' xmlns=\\'http://www.w3.org/2000/svg\\'><path d=\\'M 35 100 C 35 25, 165 25, 165 100\\' fill=\\'none\\' stroke=\\'#78350f\\' stroke-width=\\'16\\' stroke-linecap=\\'round\\'/><path d=\\'M 35 100 C 35 25, 165 25, 165 100\\' fill=\\'none\\' stroke=\\'#d97706\\' stroke-width=\\'10\\' stroke-linecap=\\'round\\'/><ellipse cx=\\'100\\' cy=\\'100\\' rx=\\'68\\' ry=\\'16\\' fill=\\'#451a03\\'/><path d=\\'M 32 100 C 36 150, 55 175, 100 175 C 145 175, 164 150, 168 100 Z\\' fill=\\'#d97706\\' stroke=\\'#78350f\\' stroke-width=\\'5\\'/><path d=\\'M 34 118 C 60 132, 140 132, 166 118\\' fill=\\'none\\' stroke=\\'#92400e\\' stroke-width=\\'5\\'/><path d=\\'M 38 136 C 65 148, 135 148, 162 136\\' fill=\\'none\\' stroke=\\'#92400e\\' stroke-width=\\'5\\'/><ellipse cx=\\'100\\' cy=\\'100\\' rx=\\'70\\' ry=\\'16\\' fill=\\'none\\' stroke=\\'#78350f\\' stroke-width=\\'8\\'/><ellipse cx=\\'100\\' cy=\\'100\\' rx=\\'70\\' ry=\\'16\\' fill=\\'none\\' stroke=\\'#f59e0b\\' stroke-width=\\'5\\' stroke-dasharray=\\'10 6\\'/></svg>';">
+                    </div>
+                    <span class="text-3xl md:text-5xl font-black text-white drop-shadow-md">${opt}</span>
+                `;
+                btn.onclick = () => checkQuizAnswer(opt, btn);
+                optionsContainer.appendChild(btn);
+            });
+
+            speak(`Berapa jumlah semua ${data.nameSingular} ini? Tekan angka di keranjang bawah ya!`);
+        }
+
+        function createQuizFruitItem(emoji, index) {
+            const el = document.createElement('div');
+            el.className = "w-12 h-12 md:w-16 md:h-16 bg-amber-50 rounded-2xl border-2 border-amber-200 shadow-sm flex items-center justify-center text-3xl md:text-4xl cursor-pointer hover:scale-110 active:scale-90 transition-transform";
+            el.innerHTML = emoji;
+            el.onclick = () => {
+                playPopSound(300 + (index * 40));
+                speak(`${index}`);
+            };
+            return el;
+        }
+
+        function checkQuizAnswer(selected, buttonElem) {
+            const data = quizData[currentQuizIdx];
+
+            if (selected === data.answer) {
+                // Correct Answer!
+                playCorrectSound();
+                buttonElem.classList.add('ring-4', 'ring-emerald-400', 'bg-emerald-600');
+                quizStarsCount++;
+                
+                // Trigger mini confetti
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+
+                speak(`Wah, kamu pintar sekali! Jawabannya benar ${data.answer}!`);
+
+                setTimeout(() => {
+                    currentQuizIdx++;
+                    if (currentQuizIdx < quizData.length) {
+                        renderQuizLevel();
+                    } else {
+                        showRewardScene();
+                    }
+                }, 1800);
+
+            } else {
+                // Wrong Answer
+                playWrongSound();
+                buttonElem.classList.add('animate-shake');
+                setTimeout(() => buttonElem.classList.remove('animate-shake'), 500);
+
+                speak(`Ups! Coba hitung lagi yuk, ada berapa buahnya?`);
+            }
+        }
+
+        function showRewardScene() {
+            showScene('scene-reward');
+            playVictorySound();
+            
+            document.getElementById('reward-score-text').innerText = `${quizStarsCount} / ${quizData.length}`;
+
+            // Big celebratory confetti shower
+            const duration = 2.5 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+                const particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+
+            speak("Horeee! Kamu luar biasa! Sudah bisa berhitung buah dengan hebat!");
+        }
+
+        // Initialize Speech Voices when ready
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                // Preload voices
+            };
+        }
+    </script>
+</body>
+</html>
